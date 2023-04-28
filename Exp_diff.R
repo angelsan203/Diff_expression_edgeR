@@ -1,23 +1,20 @@
-if (!require("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
-BiocManager::install("edgeR")
+packages <- c("Biocmnanager","pheatmap", "edgeR", "RColorBrewer","colorspace","")
+installed_packages <- packages %in% rownames(installed.packages())
+if (any(installed_packages == FALSE)) {
+  BiocManager::install(packages[!installed_packages])
+}
+invisible(lapply(packages, library, character.only = TRUE))
 
-library(pheatmap);	#Esta es la librería para hacer heatmaps bonitos: pretty heatmaps - pheatmap
-#La instalamos cuando hicimos el tutorial de heatmaps
-library(edgeR);		#This is the library for doing the DE analysis
-#Remember to reference when done; follow instructions in: citation("edgeR")
+directory <- "~/Documentos1/GF-BS/Reto_GFBS1"
+setwd(directory);	
 
-setwd("~/Desktop/GF-BS/Reto");	#Choose the directory where the counts file is. 
-#Everything we do will be saved in this folder. 
-#It is not necessary at all in RStudio. In RStudio click "Session">"Set Working Directory">"Choose Directory..."
-##Not yet tested in mac, may not work.
 
-#Let's load the data
-raw.table<-read.delim("counts.txt", stringsAsFactors=FALSE);	#This is the table with counts
-conditions<-read.delim("conditions.txt", row.names=1);			#This file has the experimental conditions
+raw.table<-read.delim(file.choose(), stringsAsFactors=F);	#Table with counts
+conditions<-read.delim(file.choose(), row.names=1);			#Experimental conditions
 
-dim(raw.table);	#How many genes are we measuring
-raw.table[1:2,];	#let's see how the table looks like
+#Visualize if data was loaded correctly
+dim(raw.table);	
+raw.table[1:2,];	
 
 #OK, so we need a table with just the counts
 counts<-raw.table[,-c(1:6)];	#So we'll take everything except the first 6 columns
@@ -222,10 +219,14 @@ summary(chosen.lrt1)
 up.regulated.lrt1<-rownames(chosen.lrt1)[chosen.lrt1==1];
 down.regulated.lrt1<-rownames(chosen.lrt1)[chosen.lrt1==-1];
 
-pheatmap(t(log.cpm[((chosen.lrt1!=0) & (chosen.qlf1!=0)),(conditions$group=="CTRL.2h")|(conditions$group=="CTRL.8h")]),color = colorRampPalette(rev(brewer.pal(n = 7, name = "Spectral")))(100), main = "Heatmap de expresión Control 2h vs Control 8h ", scale="column", show_colnames = F, cutree_rows = 2, clustering_method = "ward.D2",clustering_distance_rows = "manhattan")
+pheatmap(t(log.cpm[((chosen.lrt1!=0) & (chosen.qlf1!=0)),(conditions$group=="CTRL.2h")|(conditions$group=="CTRL.8h")]),
+         color = colorRampPalette(rev(brewer.pal(n = 7, name = "Spectral")))(100), main = "Heatmap de expresión Control 2h vs Control 8h ",
+         scale="column", show_colnames = F, cutree_rows = 2, clustering_method = "ward.D2",clustering_distance_rows = "manhattan")
 
-venn.diagram(x=list(QLM=up.regulated.qlf, LRT=up.regulated.lrt1), fill=c("Gray", "Cornflowerblue"),	main = "Upregulated Genes",cat.col=c("Black","DarkBlue"),filename="DEG_Upregulated_LRTvsQLF.tiff");
-venn.diagram(x=list(QLM=down.regulated.qlf, LRT=down.regulated.lrt1), fill=c("Red", "Yellow"),	main = "Downregulated Genes",cat.col=c("DarkRed","Orange"), filename="DEG_Downregulated_LRTvsQLF.tiff");
+venn.diagram(x=list(QLM=up.regulated.qlf, LRT=up.regulated.lrt1), 
+             fill=c("Gray", "Cornflowerblue"),	main = "Upregulated Genes",cat.col=c("Black","DarkBlue"),filename="DEG_Upregulated_LRTvsQLF.tiff");
+venn.diagram(x=list(QLM=down.regulated.qlf, LRT=down.regulated.lrt1),
+             fill=c("Red", "Yellow"),	main = "Downregulated Genes",cat.col=c("DarkRed","Orange"), filename="DEG_Downregulated_LRTvsQLF.tiff");
 
 int.up <- intersect(up.regulated.lrt1,up.regulated.qlf)
 int.down <- intersect(down.regulated.lrt1,down.regulated.qlf)
@@ -243,7 +244,9 @@ lrtTest2<-glmLRT(GLM.fit,contrast=as.numeric(contrastes["T4kV.2h.vs.T4kV.8h",]))
 chosen.qlf2 <-decideTests(glmTest2,adjust.method="BH", p.value=0.05,lfc=log(thr,2));
 chosen.lrt2<-decideTests(lrtTest2,adjust.method="BH", p.value=0.05,lfc=log(thr,2));
 
-pheatmap(t(log.cpm[((chosen.lrt2!=0) & (chosen.qlf2!=0)),(conditions$group=="T4kV.2h")|(conditions$group=="T4kV.8h")]),color = colorRampPalette(rev(brewer.pal(n = 7, name = "Spectral")))(100), main = "Heatmap de expresión tratamiento 4kV 2h vs 8h ", scale="column", show_colnames = F, cutree_rows = 2, clustering_method = "ward.D2",clustering_distance_rows = "manhattan")
+pheatmap(t(log.cpm[((chosen.lrt2!=0) & (chosen.qlf2!=0)),(conditions$group=="T4kV.2h")|(conditions$group=="T4kV.8h")]),
+         color = colorRampPalette(rev(brewer.pal(n = 7, name = "Spectral")))(100), main = "Heatmap de expresión tratamiento 4kV 2h vs 8h ", 
+         scale="column", show_colnames = F, cutree_rows = 2, clustering_method = "ward.D2",clustering_distance_rows = "manhattan")
 
 
 up.regulated.qlf2<-rownames(chosen.qlf2)[chosen.qlf2==1];
@@ -263,14 +266,21 @@ write.csv(full.gene.list1, file = "T4kv_gene_list.csv")
 full.qlf.table1 <- topTags(glmTest2, n="inf")$table
 write.csv(full.qlf.table1, file = "T4kV_full_table.csv")
 
-plotMD(glmTest1, main = "Expresión diferencial de Control 2h vs 8h", pch = 19, hl.col = c("purple", "orange"))
-plotMD(glmTest2, main = "Expresión diferencial de Tratamiento 4kV 2h vs 8h", pch = 19, hl.col = c("purple","orange"))
+plotMD(glmTest1, main = "Expresión diferencial de Control 2h vs 8h",
+       pch = 19, hl.col = c("purple", "orange"))
+plotMD(glmTest2, main = "Expresión diferencial de Tratamiento 4kV 2h vs 8h", 
+       pch = 19, hl.col = c("purple","orange"))
 
-plot(full.qlf.table$logFC,-1*log(full.qlf.table$FDR,10), ylab="-log10(FDR)",xlab="log2(Fold Change)", pch = 19, cex=0.3, main = "Volcano plot de genes diferencialmente expresados CTRL 2h vs CTRL 8h");
-points(full.qlf.table[up.regulated.qlf,"logFC"],-1*log(full.qlf.table[up.regulated.qlf,"FDR"],10), pch = 19, cex=0.3,col="hotpink");
-points(full.qlf.table[down.regulated.qlf,"logFC"],-1*log(full.qlf.table[down.regulated.qlf,"FDR"],10), pch = 19, cex=0.3,col="purple");
-
-plot(full.qlf.table1$logFC,-1*log(full.qlf.table1$FDR,10), ylab="-log10(FDR)",xlab="log2(Fold Change)", pch = 19, cex=0.3, main = "Volcano plot de genes diferencialmente expresados T4kV 2h vs T4kV 8h");
-points(full.qlf.table1[up.regulated.qlf2,"logFC"],-1*log(full.qlf.table1[up.regulated.qlf2,"FDR"],10), pch = 19, cex=0.3,col="hotpink");
-points(full.qlf.table1[down.regulated.qlf2,"logFC"],-1*log(full.qlf.table1[down.regulated.qlf2,"FDR"],10), pch = 19, cex=0.3,col="purple");
+plot(full.qlf.table$logFC,-1*log(full.qlf.table$FDR,10), ylab="-log10(FDR)",xlab="log2(Fold Change)", 
+       pch = 19, cex=0.3, main = "Volcano plot de genes diferencialmente expresados CTRL 2h vs CTRL 8h");
+points(full.qlf.table[up.regulated.qlf,"logFC"],-1*log(full.qlf.table[up.regulated.qlf,"FDR"],10), 
+       pch = 19, cex=0.3,col="hotpink");
+points(full.qlf.table[down.regulated.qlf,"logFC"],-1*log(full.qlf.table[down.regulated.qlf,"FDR"],10), 
+       pch = 19, cex=0.3,col="purple");
+plot(full.qlf.table1$logFC,-1*log(full.qlf.table1$FDR,10), ylab="-log10(FDR)",xlab="log2(Fold Change)",
+       pch = 19, cex=0.3, main = "Volcano plot de genes diferencialmente expresados T4kV 2h vs T4kV 8h");
+points(full.qlf.table1[up.regulated.qlf2,"logFC"],-1*log(full.qlf.table1[up.regulated.qlf2,"FDR"],10), 
+       pch = 19, cex=0.3,col="hotpink");
+points(full.qlf.table1[down.regulated.qlf2,"logFC"],-1*log(full.qlf.table1[down.regulated.qlf2,"FDR"],10), 
+       pch = 19, cex=0.3,col="purple");
 
